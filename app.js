@@ -8,9 +8,24 @@ const expressLayout = require('express-ejs-layouts')
 
 const db =  require('./database/db')
 
+// Pertemuan7 session dan bycrpt
+const session = require('express-session');
+app.use(session({
+    secret: 'your-secret-key',  // Gantilah dengan string kunci rahasia yang aman
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }  // Pastikan secure adalah false untuk pengembangan lokal
+})); 
+
+
+const authRoutes = require('./routes/authRoutes');
+const { isAuthenticated } = require('./middlewares/middleware.js');
+
+
+
 app.use(expressLayout);
 
-app.use(express.json());
+app.use(express.json());            // fungsinya untuk mem-parsing request body yang dikirim dalam format JSON.
 
 app.use('/todos', todoRoutes);
 app.set('view engine', 'ejs');
@@ -26,21 +41,22 @@ app.use(session({
 }));
 
 
+
 app.use('/', authRoutes);
 
-app.get('/', (req, res) => {
+app.get('/', isAuthenticated, (req, res) => {
     res.render('index', {
         layout: 'layouts/main-layout'
     });
 });
 
-app.get('/contact',(req, res) => {
+app.get('/contact', isAuthenticated,(req, res) => {
     res.render('contact',{
         layout: 'layouts/main-layout'
     });
 });
 
-app.get('/todo-view', (req, res) => {
+app.get('/todo-view', isAuthenticated,(req, res) => {
     db.query('SELECT * FROM todos', (err, todos) => {
         if (err) return res.status(500).send('Internal Server Error');
         res.render('todo', {
@@ -48,15 +64,6 @@ app.get('/todo-view', (req, res) => {
             todos: todos
         });
     });
-});
-
-
-app.get('/', (req, res) => {
-    res.render('index');
-});
-
-app.get('/contact', (req, res) => {
-    res.render('contact');
 });
 
 app.use((req, res) => {
